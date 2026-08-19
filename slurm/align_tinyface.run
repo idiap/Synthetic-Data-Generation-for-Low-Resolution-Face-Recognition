@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: align_tinyface.run
+#
+# Align a TinyFace split. The paper reports TinyFace under two pipelines, and
+# absolute accuracy moves a lot between them, so any comparison must fix the
+# aligner:
+#
+#   dfa-resnet50  Differentiable Face Aligner from CVLface (run scripts/setup_dfa.sh first)
+#   mtcnn         the bundled MTCNN aligner
+#
+# Usage:
+#   sbatch slurm/align_tinyface.run <split> [method] [output_size]
+#
+#     <split>        Train | Probe | Gallery_Match | Gallery_Distractor
+#     [method]       dfa-resnet50 (default) | dfa-mobilenet | mtcnn | insightface_r50
+#     [output_size]  112 (default), or 32 to produce the native-LR crops that
+#                    feed the SR front-end
+#
+# Examples:
+#   sbatch slurm/align_tinyface.run Probe dfa-resnet50 112
+#   sbatch slurm/align_tinyface.run Probe dfa-resnet50 32
+
+#SBATCH --job-name=align_tinyface
+#SBATCH --array=0-19
+#SBATCH --mem=16G
+#SBATCH --time=8:00:00
+#SBATCH --output=logs/align_tinyface_%A_%a.out
+#SBATCH --error=logs/align_tinyface_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+SPLIT="${1:?usage: align_tinyface.run <split> [method] [output_size]}"
+METHOD="${2:-dfa-resnet50}"
+OUTPUT_SIZE="${3:-112}"
+
+case "$SPLIT" in
+    Train)  INPUT_SUBDIR="Training_Set" ;;
+    Probe|Gallery_Match|Gallery_Distractor) INPUT_SUBDIR="Testing_Set/$SPLIT" ;;
+    *) echo "ERROR: unknown split '$SPLIT'." >&2; exit 1 ;;
+esac
+
+ALIGN_ROOT="face_alignment/tinyface_alignment"
+OUT_DIR="$ALIGN_ROOT/${SPLIT}_aligned_${METHOD}_${OUTPUT_SIZE}"
+
+EXTRA_ARGS=()
+if [ "$OUTPUT_SIZE" != "112" ]; then
+    # Keeping the input at the output resolution avoids upsampling inside the
+    # aligner, which is the point of the native-LR crops.
+    EXTRA_ARGS+=(--output-size "$OUTPUT_SIZE" --max-input-size "$OUTPUT_SIZE")
+fi
+
+echo "Task ${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1} — started at $(date)"
+
+activate_env eval
+
+# SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT are auto-detected by the script.
+python face_alignment/tinyface_alignment/align_tinyface.py \
+    --lst "$ALIGN_ROOT/${SPLIT}.lst" \
+    --input-dir "$TINYFACE_ROOT/$INPUT_SUBDIR" \
+    --output-dir "$OUT_DIR" \
+    --method "$METHOD" \
+    "${EXTRA_ARGS[@]}"
+
+echo "Task ${SLURM_ARRAY_TASK_ID:-0} — finished at $(date)"

@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: merge_recs.run
+#
+# Merge the per-task parts written by slurm/preprocess_rec.run (or
+# preprocess_rec_esrgan.run) back into a single train.rec / train.idx.
+#
+# Usage:
+#   sbatch slurm/merge_recs.run <dataset_folder>
+#
+# Example:
+#   sbatch slurm/merge_recs.run processed_downsample_56_cubic_area_webface4m
+
+#SBATCH --job-name=merge_recs
+#SBATCH --time=08:00:00
+#SBATCH --mem=32G
+#SBATCH --output=logs/merge_recs_%A_%a.out
+#SBATCH --error=logs/merge_recs_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+DATA_FOLDER="${1:?usage: merge_recs.run <dataset_folder>}"
+
+activate_env train
+
+python scripts/merge_rec_parts.py "$LRFR_DATA_ROOT/$DATA_FOLDER"

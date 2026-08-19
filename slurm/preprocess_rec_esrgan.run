@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: preprocess_rec_esrgan.run
+#
+# Medium-effort synthesis: apply the Real-ESRGAN high-order degradation model
+# (random blur, resize, noise, JPEG, twice over) to WebFace4M and store the
+# result natively at 32x32. Produces the record consumed by the native-32 stem
+# and by both stages of the SR front-end.
+#
+# Usage:
+#   sbatch slurm/preprocess_rec_esrgan.run [size]     # size defaults to 32
+#
+# Merge the array parts afterwards with slurm/merge_recs.run.
+
+#SBATCH --job-name=preprocess_rec_esrgan
+#SBATCH --array=0-9
+#SBATCH --mem=16G
+#SBATCH --time=8:00:00
+#SBATCH --output=logs/preprocess_rec_esrgan_%A_%a.out
+#SBATCH --error=logs/preprocess_rec_esrgan_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+SIZE="${1:-32}"
+INPUT_DIR="$LRFR_DATA_ROOT/passthrough_webface4m"
+
+echo "Array job ${SLURM_ARRAY_JOB_ID:-n/a}, task ${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1}"
+echo "Host: $(hostname) — started at $(date)"
+
+activate_env train
+
+python scripts/preprocess_rec.py "$INPUT_DIR" \
+    --method esrgan \
+    --output-size "$SIZE"
+
+echo "Finished at: $(date)"

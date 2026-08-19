@@ -1,0 +1,48 @@
+*.pyc
+__pycache__
+.vscode
+.idea
+.DS_Store
+._*
+
+# Datasets and staged views of them
+data
+*.rec
+*.idx
+*.bin
+
+# Local site configuration (paths, conda, SLURM account)
+slurm/env.sh
+
+# Pretrained weights fetched by scripts/fetch_checkpoints.sh (CC-BY-NC-SA-4.0,
+# distributed separately on Hugging Face, not part of this repository)
+checkpoints/
+
+# Third-party aligners fetched by scripts/setup_dfa.sh
+face_alignment/dfa/cvlface_DFA_mobilenet
+face_alignment/dfa/cvlface_DFA_resnet50
+face_alignment/aligned
+face_alignment/tinyface_alignment/*_aligned_*
+face_alignment/tinyface_alignment/upsampled_*
+
+# Run outputs: training/eval write a directory named after config.output
+logs
+.monitor_states
+*.ckpt
+*.pkl
+*.csv
+result
+results
+viz
+work_dirs
+edgeface_s_gamma_05*/
+edgeface_base*/
+edgeface_lr_*/
+sr_pretrain_*/
+pdt_visualisations
+
+# Scratch
+experiments
+playground
+validation_ijbs
+scripts/run_debug*

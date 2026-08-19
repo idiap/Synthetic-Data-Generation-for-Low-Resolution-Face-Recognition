@@ -1,0 +1,73 @@
+version = 1
+SPDX-PackageName = "code.ijcb2026.synth-lrfr"
+SPDX-PackageSupplier = "Idiap Research Institute <contact@idiap.ch>"
+SPDX-PackageDownloadLocation = "https://gitlab.idiap.ch/biometric/code.ijcb2026.synth-lrfr"
+
+# --------------------------------------------------------------------------- #
+# First-party files that cannot carry comment headers (data, docs, licenses)  #
+# --------------------------------------------------------------------------- #
+[[annotations]]
+path = [
+    ".gitignore",
+    "README.md",
+    "fairness/README.md",
+    "requirement.txt",
+    "requirements_eval.txt",
+    "LICENSE",
+    "REUSE.toml",
+    "face_alignment/tinyface_alignment/Gallery_Distractor.lst",
+    "face_alignment/tinyface_alignment/Gallery_Match.lst",
+    "face_alignment/tinyface_alignment/Probe.lst",
+    "face_alignment/tinyface_alignment/Train.lst",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "© 2026 Idiap Research Institute <contact@idiap.ch>"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# --------------------------------------------------------------------------- #
+# Inherited from the EdgeFace release (BSD-3-Clause, Idiap)                   #
+# https://gitlab.idiap.ch/bob/bob.paper.tbiom2023_edgeface                    #
+# --------------------------------------------------------------------------- #
+[[annotations]]
+path = [
+    "README_EDGEFACE.md",
+    "assets/edgeface.png",
+    "assets/synthface.jpeg",
+    "face_alignment/test_images/img1.jpeg",
+    "face_alignment/test_images/img2.jpeg",
+    "face_alignment/test_images/img3.jpeg",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "© 2023-2026 Idiap Research Institute <contact@idiap.ch>"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# --------------------------------------------------------------------------- #
+# Inherited from InsightFace (MIT)                                            #
+# https://github.com/deepinsight/insightface                                  #
+# --------------------------------------------------------------------------- #
+[[annotations]]
+path = [
+    "README_INSIGHTFACE.md",
+    "docs/eval.md",
+    "docs/install.md",
+    "docs/install_dali.md",
+    "docs/modelzoo.md",
+    "docs/prepare_custom_dataset.md",
+    "docs/prepare_webface42m.md",
+    "docs/speed_benchmark.md",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Copyright (c) 2022 Jiankang Deng and Jia Guo"
+SPDX-License-Identifier = "MIT"
+
+# --------------------------------------------------------------------------- #
+# Vendored mtcnn-pytorch (MIT)                                                #
+# https://github.com/TropComplique/mtcnn-pytorch                              #
+# In-file SPDX headers take precedence for the .py sources, including the two #
+# files authored by Yafei Zhao and vendored via AdaFace.                      #
+# --------------------------------------------------------------------------- #
+[[annotations]]
+path = ["face_alignment/mtcnn_pytorch/**"]
+precedence = "closest"
+SPDX-FileCopyrightText = "Copyright (c) 2017 Dan Antoshchenko"
+SPDX-License-Identifier = "MIT"

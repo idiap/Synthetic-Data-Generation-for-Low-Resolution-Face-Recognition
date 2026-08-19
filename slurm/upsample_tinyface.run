@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: upsample_tinyface.run
+#
+# Run the stage-1 SR upsampler over the native 32 px TinyFace crops and write
+# 112 px reconstructions, so that the SR front-end can be evaluated with the
+# ordinary identification script.
+#
+# Produce the 32 px crops first:
+#   for s in Gallery_Match Probe Gallery_Distractor; do
+#       sbatch slurm/align_tinyface.run "$s" dfa-resnet50 32
+#   done
+#
+# Usage:
+#   sbatch slurm/upsample_tinyface.run <espcn|resrgan>
+
+#SBATCH --job-name=upsample_tinyface
+#SBATCH --array=0-19
+#SBATCH --mem=16G
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=1
+#SBATCH --partition=gpu
+#SBATCH --output=logs/upsample_tinyface_%A_%a.out
+#SBATCH --error=logs/upsample_tinyface_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+VARIANT="${1:?usage: upsample_tinyface.run <espcn|resrgan>}"
+case "$VARIANT" in
+    espcn|resrgan) ;;
+    *) echo "ERROR: variant must be 'espcn' or 'resrgan', got '$VARIANT'." >&2; exit 1 ;;
+esac
+
+CONFIG="configs/edgeface_base_PDT_up32_${VARIANT}.py"
+CKPT="sr_pretrain_${VARIANT}/sr_pretrained.pt"
+
+ALIGNED_ROOT="face_alignment/tinyface_alignment"
+SR_ROOT="$ALIGNED_ROOT/upsampled_112_${VARIANT}"
+
+echo "Task ${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1} — started at $(date)"
+
+activate_env eval
+
+# SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT are auto-detected by the script.
+for SET in Gallery_Match Probe Gallery_Distractor; do
+    python upsample_tinyface.py \
+        --config "$CONFIG" \
+        --stage1-checkpoint "$CKPT" \
+        --input-dir  "$ALIGNED_ROOT/${SET}_aligned_dfa-resnet50_32" \
+        --output-dir "$SR_ROOT/$SET" \
+        --input-size 32 \
+        --batch-size 64
+done
+
+echo "Task ${SLURM_ARRAY_TASK_ID:-0} — finished at $(date)"

@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: train_pdt_up32.run
+#
+# High-effort synthesis, stage 2: warm-start the upsampler from stage 1 and
+# train it jointly with the PDT translator under the contrastive loss, in front
+# of a frozen EdgeFace-base. Gives the Upsampler -> PDT -> frozen backbone path.
+#
+# Usage:
+#   sbatch slurm/train_pdt_up32.run <espcn|resrgan> [--resume-override]
+#
+# Run slurm/train_sr_pretrain.run with the same variant first.
+
+#SBATCH --job-name=pdt_up32
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=4
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=64G
+#SBATCH --output=logs/pdt_up32_%A_%a.out
+#SBATCH --error=logs/pdt_up32_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+VARIANT="${1:?usage: train_pdt_up32.run <espcn|resrgan> [--resume-override]}"
+shift
+case "$VARIANT" in
+    espcn|resrgan) ;;
+    *) echo "ERROR: variant must be 'espcn' or 'resrgan', got '$VARIANT'." >&2; exit 1 ;;
+esac
+
+SUFFIX=""
+[ "$VARIANT" = "resrgan" ] && SUFFIX="_resrgan"
+
+# Stage 2 scores its verification pairs at 32 px, so the HR view also carries
+# the degraded bins.
+stage_rec "HR_for_PDT_passthrough_webface4m${SUFFIX}" \
+          passthrough_webface4m \
+          processed_noup_32_esrgan_passthrough_webface4m
+stage_rec "LR_for_PDT_processed_noup_32_esrgan_webface4m${SUFFIX}" \
+          processed_noup_32_esrgan_passthrough_webface4m \
+          processed_noup_32_esrgan_passthrough_webface4m
+use_staged_data
+
+PORT="$(master_port)"
+echo "Using master port: $PORT"
+
+activate_env train
+
+torchrun --nproc_per_node="$NPROC_PER_NODE" --master_port="$PORT" \
+    train_PDT.py "configs/edgeface_base_PDT_up32_${VARIANT}.py" "$@"

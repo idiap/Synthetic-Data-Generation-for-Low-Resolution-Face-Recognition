@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: train_edgeface_hr.run
+#
+# HR baseline: EdgeFace-S trained on undegraded WebFace4M for 100 epochs. This
+# is the "S, HR-trained (direct)" row that every LR-aware variant is compared
+# against.
+#
+# Usage:
+#   sbatch slurm/train_edgeface_hr.run [--resume-override]
+
+#SBATCH --job-name=edgeface_hr
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=4
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --output=logs/edgeface_hr_%A_%a.out
+#SBATCH --error=logs/edgeface_hr_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+stage_rec webface4m passthrough_webface4m webface4m
+use_staged_data
+
+PORT="$(master_port)"
+echo "Using master port: $PORT"
+
+activate_env train
+
+torchrun --nproc_per_node="$NPROC_PER_NODE" --master_port="$PORT" \
+    train_v2.py configs/edgeface_s_gamma_05.py "$@"

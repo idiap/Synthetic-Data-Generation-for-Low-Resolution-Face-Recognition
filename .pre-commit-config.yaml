@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Run with:
+#   pip install pre-commit
+#   pre-commit run --all-files
+#
+# Hooks are check-only (nothing rewrites files): vendored third-party sources
+# are kept byte-identical to their upstreams.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-ast
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+
+  # REUSE 3.3 compliance (headers, REUSE.toml, LICENSES/).
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+      - id: reuse

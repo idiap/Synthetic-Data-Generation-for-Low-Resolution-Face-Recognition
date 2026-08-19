@@ -1,0 +1,21 @@
+# Extra dependencies for the evaluation entry points, on top of requirement.txt.
+#
+#   eval_ijbc.py / eval_ijbc_print_only.py   menpo, prettytable, glob2, pandas
+#   face_alignment/tinyface_alignment/align_tinyface.py --method insightface_r50
+#                                            insightface
+#   flops.py                                 ptflops
+#   torch2onnx.py / onnx_ijbc.py             onnx, onnxruntime, onnxsim
+
+-r requirement.txt
+
+# Needed by the CVLface DFA aligner fetched via scripts/setup_dfa.sh.
+omegaconf
+
+menpo
+glob2
+insightface
+ptflops
+onnx
+onnxruntime
+onnxsim
+h5py

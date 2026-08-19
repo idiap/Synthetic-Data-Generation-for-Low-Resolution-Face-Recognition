@@ -1,0 +1,29 @@
+# Core training and evaluation dependencies.
+#
+# Install PyTorch first, matching your CUDA version, e.g.
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+# NVIDIA DALI is needed only when config.dali is True (the default for the
+# interpolation-augmentation recipes) and is installed separately, see
+#   https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html
+#   pip install nvidia-dali-cuda120
+
+torch
+torchvision
+timm
+easydict
+mxnet
+numpy
+scipy <= 1.8.1
+scikit-learn
+scikit-image
+opencv-python
+Pillow
+pandas
+matplotlib
+tqdm
+tensorboard
+prettytable
+pyyaml
+safetensors
+albumentations

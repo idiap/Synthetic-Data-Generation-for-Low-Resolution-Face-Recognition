@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: evaluate_model_ijbc.run
+#
+# IJB-C TAR@FAR for one checkpoint. Set IJBC_ROOT in slurm/env.sh to the root of
+# your IJB-C distribution.
+#
+# Usage:
+#   sbatch slurm/evaluate_model_ijbc.run <checkpoint> <network> [target]
+#
+#     <network>  backbone name understood by backbones.get_model,
+#                e.g. edgeface_s_gamma_05 or edgeface_base
+#     [target]   IJBC (default) or IJBB
+#
+# Example:
+#   sbatch slurm/evaluate_model_ijbc.run checkpoints/edgeface_base.pt edgeface_base
+
+#SBATCH --job-name=eval_ijbc
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=1
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=64G
+#SBATCH --output=logs/eval_ijbc_%A_%a.out
+#SBATCH --error=logs/eval_ijbc_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+CHECKPOINT="${1:?usage: evaluate_model_ijbc.run <checkpoint> <network> [target]}"
+NETWORK="${2:?missing <network>}"
+TARGET="${3:-IJBC}"
+
+activate_env eval
+
+python eval_ijbc.py \
+    --model-prefix "$CHECKPOINT" \
+    --image-path "$IJBC_ROOT" \
+    --batch-size 512 \
+    --network "$NETWORK" \
+    --job "$NETWORK" \
+    --target "$TARGET"

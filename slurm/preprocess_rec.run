@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: preprocess_rec.run
+#
+# Low-effort synthesis: build an interpolation-degraded copy of WebFace4M.
+# Runs as a SLURM array; each task handles a stride of the shuffled record list.
+#
+# Usage:
+#   sbatch slurm/preprocess_rec.run downsample <interp_down> <interp_up> <size>
+#   sbatch slurm/preprocess_rec.run passthrough
+#
+# Example (the 56 cubic-down / area-up setting that wins on real LR):
+#   sbatch slurm/preprocess_rec.run downsample cubic area 56
+#
+# `passthrough` copies raw JPEG bytes without re-encoding and takes no
+# interpolation arguments; it produces the HR reference record that the KD, PDT
+# and SR recipes pair their degraded input against.
+#
+# Merge the array parts afterwards with slurm/merge_recs.run.
+
+#SBATCH --job-name=preprocess_rec
+#SBATCH --array=0-9
+#SBATCH --mem=16G
+#SBATCH --time=8:00:00
+#SBATCH --output=logs/preprocess_rec_%A_%a.out
+#SBATCH --error=logs/preprocess_rec_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+METHOD="${1:?usage: preprocess_rec.run <downsample|passthrough> [interp_down] [interp_up] [size]}"
+
+INPUT_DIR="$LRFR_DATA_ROOT/webface4m"
+
+# passthrough re-packs the source bytes, so the interpolation and target-size
+# flags do not apply to it.
+DEGRADE_ARGS=()
+if [ "$METHOD" != "passthrough" ]; then
+    INTERP_DOWN="${2:?missing <interp_down>: area, cubic or linear}"
+    INTERP_UP="${3:?missing <interp_up>: area, cubic or linear}"
+    SIZE="${4:?missing <size>: 56, 28, 14 or 7}"
+    DEGRADE_ARGS=(--interp-down "$INTERP_DOWN"
+                  --interp-up "$INTERP_UP"
+                  --downsample-size "$SIZE")
+fi
+
+echo "Array job ${SLURM_ARRAY_JOB_ID:-n/a}, task ${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1}"
+echo "Host: $(hostname) — started at $(date)"
+
+activate_env train
+
+# SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT are auto-detected by the script.
+python scripts/preprocess_rec.py \
+    "$INPUT_DIR" \
+    --method "$METHOD" \
+    "${DEGRADE_ARGS[@]}" \
+    --shuffle-index-file "$INPUT_DIR/shuffled_index.txt"
+
+echo "Finished at: $(date)"

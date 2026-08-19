@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: evaluate_model.run
+#
+# Verification benchmarks for one checkpoint: the standard HR sets and the
+# synthetic cross-resolution sets in both modalities (HR->LR, one image
+# degraded; LR->LR, both degraded).
+#
+# The LR .bin files must exist under $LRFR_DATA_ROOT/webface4m; build them with
+# scripts/generate_lr_bin.py.
+#
+# Usage:
+#   sbatch slurm/evaluate_model.run <config> <checkpoint>
+#
+# Example:
+#   sbatch slurm/evaluate_model.run \
+#       configs/edgeface_s_gamma_05_lr_56_cubic_area.py \
+#       edgeface_s_gamma_05_lr_56_cubic_area/model.pt
+
+#SBATCH --job-name=evaluate_model
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=1
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=64G
+#SBATCH --output=logs/evaluate_model_%A_%a.out
+#SBATCH --error=logs/evaluate_model_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+CONFIG="${1:?usage: evaluate_model.run <config> <checkpoint>}"
+CHECKPOINT="${2:?missing <checkpoint>}"
+
+DATA_DIR="$LRFR_DATA_ROOT/webface4m"
+
+activate_env eval
+
+# Standard high-resolution verification (Table: HR benchmarks).
+python evaluate_model.py \
+    --config "$CONFIG" \
+    --checkpoint "$CHECKPOINT" \
+    --val-targets lfw calfw cplfw cfp_ff cfp_fp agedb_30 \
+    --data-dir "$DATA_DIR"
+
+# Synthetic cross-resolution, both modalities.
+python evaluate_model.py \
+    --config "$CONFIG" \
+    --checkpoint "$CHECKPOINT" \
+    --val-targets \
+        lfw_56 lfw_28 lfw_14 lfw_7 \
+        lfw_56_lr2lr lfw_28_lr2lr lfw_14_lr2lr lfw_7_lr2lr \
+        lfw_56_hr2lr_interArea lfw_28_hr2lr_interArea \
+        lfw_14_hr2lr_interArea lfw_7_hr2lr_interArea \
+    --data-dir "$DATA_DIR"

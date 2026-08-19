@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: evaluate_model_tinyface.run
+#
+# Real native-LR TinyFace identification (mAP, Rank-k) against a ~157k-image
+# gallery. This is the evaluation that exposes the synthetic-real gap, so it is
+# the one to trust when comparing adaptation strategies.
+#
+# Usage:
+#   sbatch slurm/evaluate_model_tinyface.run <config> <checkpoint> <aligned_dir> [input_size]
+#
+#     <aligned_dir>  a directory holding Gallery_Match/, Probe/ and
+#                    Gallery_Distractor/ subfolders, as produced by
+#                    slurm/align_tinyface.run or slurm/upsample_tinyface.run
+#
+# Example (direct feed of the frozen EdgeFace-base, DFA alignment):
+#   sbatch slurm/evaluate_model_tinyface.run \
+#       configs/edgeface_base.py checkpoints/edgeface_base.pt \
+#       face_alignment/tinyface_alignment/aligned_dfa-resnet50_112
+
+#SBATCH --job-name=eval_tinyface
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=1
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=64G
+#SBATCH --output=logs/eval_tinyface_%A_%a.out
+#SBATCH --error=logs/eval_tinyface_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+CONFIG="${1:?usage: evaluate_model_tinyface.run <config> <checkpoint> <aligned_dir> [input_size]}"
+CHECKPOINT="${2:?missing <checkpoint>}"
+DATA_DIR="${3:?missing <aligned_dir>}"
+INPUT_SIZE="${4:-112}"
+
+activate_env eval
+
+python eval_tinyface_identification.py \
+    --config "$CONFIG" \
+    --checkpoint "$CHECKPOINT" \
+    --mat-dir "$TINYFACE_ROOT/Face_Identification_Evaluation" \
+    --aligned-gallery-dir    "$DATA_DIR/Gallery_Match" \
+    --aligned-probe-dir      "$DATA_DIR/Probe" \
+    --aligned-distractor-dir "$DATA_DIR/Gallery_Distractor" \
+    --input-size "$INPUT_SIZE"

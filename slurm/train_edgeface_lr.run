@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: © 2026 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Luis S. Luevano <luis.luevano@idiap.ch>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Script: train_edgeface_lr.run
+#
+# Low-effort synthesis, recognizer side: retrain EdgeFace-S end-to-end on an
+# interpolation-degraded WebFace4M built by slurm/preprocess_rec.run. This is
+# the "LR backbone" / "interp. aug" family of the paper.
+#
+# Usage:
+#   sbatch slurm/train_edgeface_lr.run <interp_down> <interp_up> <size> [--resume-override]
+#
+# Example (best compact model on real LR):
+#   sbatch slurm/train_edgeface_lr.run cubic area 56
+
+#SBATCH --job-name=edgeface_lr
+#SBATCH --time=8:00:00
+#SBATCH --gpus-per-node=4
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --output=logs/edgeface_lr_%A_%a.out
+#SBATCH --error=logs/edgeface_lr_%A_%a.err
+
+source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+INTERP_DOWN="${1:?usage: train_edgeface_lr.run <interp_down> <interp_up> <size> [--resume-override]}"
+INTERP_UP="${2:?missing <interp_up>}"
+SIZE="${3:?missing <size>}"
+shift 3
+
+DATA_DIR="processed_downsample_${SIZE}_${INTERP_DOWN}_${INTERP_UP}_webface4m"
+
+# The degraded record plus the verification bins, which stay at their original
+# resolution so that HR->LR pairs can be scored.
+stage_rec "$DATA_DIR" "$DATA_DIR" webface4m
+use_staged_data
+
+PORT="$(master_port)"
+echo "Using master port: $PORT"
+
+activate_env train
+
+torchrun --nproc_per_node="$NPROC_PER_NODE" --master_port="$PORT" \
+    train_v2.py "configs/edgeface_s_gamma_05_lr_${SIZE}_${INTERP_DOWN}_${INTERP_UP}.py" "$@"
